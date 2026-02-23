@@ -7,7 +7,7 @@ name = "agent-tasks-lite"
 version = "0.2.0"
 description = "Lightweight task queue for AI agents — pure Python, file-based, zero dependencies"
 readme = "README.md"
-license = "MIT"
+license = {text = "MIT"}
 requires-python = ">=3.8"
 authors = [{name = "xiaona-ai", email = "yangx3852@gmail.com"}]
 keywords = ["agent", "tasks", "queue", "llm", "automation"]
