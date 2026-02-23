@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agent-tasks"
+version = "0.1.0"
+description = "Lightweight task queue for AI agents — pure Python, file-based, zero dependencies"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.8"
+authors = [{name = "xiaona-ai", email = "yangx3852@gmail.com"}]
+keywords = ["agent", "tasks", "queue", "llm", "automation"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+]
+
+[project.scripts]
+agent-tasks = "agent_tasks.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["agent_tasks*"]
+
+[project.optional-dependencies]
+test = ["pytest>=7.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
