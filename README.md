@@ -24,7 +24,7 @@ AI agents need to manage work: prioritize tasks, track progress, handle failures
 ## Install
 
 ```bash
-pip install git+https://github.com/xiaona-ai/agent-tasks.git
+pip install agent-tasks-lite
 ```
 
 ## Python SDK
