@@ -13,6 +13,8 @@ AI agents need to manage work: prioritize tasks, track progress, handle failures
 - 📋 **Priority queue** — Tasks sorted by priority (1-5), highest first
 - 🔗 **Dependencies** — Tasks auto-block until dependencies complete
 - 🔄 **Auto-retry** — Failed tasks retry up to N times before failing permanently
+- 📅 **Due dates** — Set deadlines, track overdue tasks
+- 📤 **Export** — Markdown or JSON task reports
 - 🏷️ **Tags** — Organize and filter tasks
 - 📊 **Stats** — Quick overview of task states
 - ⚡ **Zero dependencies** — Pure Python standard library
@@ -50,6 +52,14 @@ t1 = tq.add("Build")
 t2 = tq.add("Deploy", depends_on=[t1.id])  # auto-blocked
 # t2 unblocks when t1 completes
 
+# Due dates
+tq.add("Ship feature", due_at="2026-03-01T12:00:00+00:00", priority=5)
+overdue = tq.overdue()  # tasks past their deadline
+
+# Export
+print(tq.export("md"))   # markdown report grouped by status
+print(tq.export("json")) # raw JSON
+
 # Filter and stats
 pending = tq.list(status="pending")
 ops_tasks = tq.list(tag="ops")
@@ -82,6 +92,11 @@ agent-tasks cancel <id>
 
 # Stats
 agent-tasks stats
+agent-tasks overdue
+
+# Export
+agent-tasks export
+agent-tasks export --format json
 ```
 
 ## Task Lifecycle

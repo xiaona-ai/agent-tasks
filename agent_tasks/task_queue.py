@@ -30,7 +30,7 @@ class Task:
 
     __slots__ = (
         "id", "name", "description", "status", "priority",
-        "created_at", "started_at", "completed_at",
+        "created_at", "started_at", "completed_at", "due_at",
         "tags", "metadata", "depends_on", "subtasks",
         "retries", "max_retries", "timeout",
         "result", "error",
@@ -45,6 +45,7 @@ class Task:
         self.created_at: str = data.get("created_at", datetime.now(timezone.utc).isoformat())
         self.started_at: Optional[str] = data.get("started_at")
         self.completed_at: Optional[str] = data.get("completed_at")
+        self.due_at: Optional[str] = data.get("due_at")
         self.tags: List[str] = data.get("tags", [])
         self.metadata: Dict[str, Any] = data.get("metadata", {})
         self.depends_on: List[str] = data.get("depends_on", [])
@@ -65,6 +66,7 @@ class Task:
             "created_at": self.created_at,
             "started_at": self.started_at,
             "completed_at": self.completed_at,
+            "due_at": self.due_at,
             "tags": self.tags,
             "metadata": self.metadata,
             "depends_on": self.depends_on,
@@ -160,8 +162,13 @@ class TaskQueue:
         depends_on: Optional[List[str]] = None,
         metadata: Optional[dict] = None,
         timeout: Optional[int] = None,
+        due_at: Optional[str] = None,
     ) -> Task:
-        """Add a new task. Returns the created Task."""
+        """Add a new task. Returns the created Task.
+
+        Args:
+            due_at: Optional ISO-8601 datetime string for the deadline.
+        """
         self._ensure_store()
         if priority is None:
             priority = self._config.get("default_priority", 3)
@@ -177,6 +184,7 @@ class TaskQueue:
             "depends_on": depends_on or [],
             "metadata": metadata or {},
             "timeout": timeout,
+            "due_at": due_at,
             "max_retries": self._config.get("max_retries", 3),
         })
 
@@ -319,6 +327,50 @@ class TaskQueue:
             if t.status == BLOCKED and t.depends_on:
                 if all(d in done_ids for d in t.depends_on):
                     t.status = PENDING
+
+    def overdue(self) -> List[Task]:
+        """Return tasks that are past their due date and not done/failed."""
+        now = datetime.now(timezone.utc).isoformat()
+        tasks = self._load_all()
+        return [
+            t for t in tasks
+            if t.due_at and t.due_at < now and t.status not in (DONE, FAILED)
+        ]
+
+    def export(self, fmt: str = "md") -> str:
+        """Export tasks as markdown or JSON."""
+        tasks = self._load_all()
+        if fmt == "json":
+            return json.dumps([t.to_dict() for t in tasks], indent=2, ensure_ascii=False)
+        # Markdown
+        lines = ["# Task Report", ""]
+        by_status = {}
+        for t in tasks:
+            by_status.setdefault(t.status, []).append(t)
+        status_order = [RUNNING, PENDING, BLOCKED, DONE, FAILED]
+        icons = {"pending": "⏳", "running": "🔄", "done": "✅", "failed": "❌", "blocked": "🔒"}
+        for s in status_order:
+            group = by_status.get(s, [])
+            if not group:
+                continue
+            lines.append(f"## {icons.get(s, '')} {s.capitalize()} ({len(group)})")
+            lines.append("")
+            for t in group:
+                pri = f" P{t.priority}" if t.priority != 3 else ""
+                tags = f" `{', '.join(t.tags)}`" if t.tags else ""
+                due = f" 📅 {t.due_at[:10]}" if t.due_at else ""
+                lines.append(f"- **{t.name}**{pri}{tags}{due} [{t.id}]")
+                if t.description:
+                    lines.append(f"  {t.description}")
+                if t.result:
+                    lines.append(f"  → {t.result}")
+                if t.error:
+                    lines.append(f"  ⚠️ {t.error}")
+            lines.append("")
+        # Stats
+        s = self.stats()
+        lines.append(f"---\n*Total: {s['total']} | Done: {s[DONE]} | Pending: {s[PENDING]} | Failed: {s[FAILED]}*")
+        return "\n".join(lines)
 
     def count(self) -> int:
         return len(self._load_all())

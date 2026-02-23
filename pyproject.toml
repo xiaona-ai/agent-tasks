@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "agent-tasks"
-version = "0.1.0"
+version = "0.2.0"
 description = "Lightweight task queue for AI agents — pure Python, file-based, zero dependencies"
 readme = "README.md"
 license = "MIT"

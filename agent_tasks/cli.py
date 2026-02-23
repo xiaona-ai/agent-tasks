@@ -20,6 +20,7 @@ def main():
     p_add.add_argument("--priority", type=int, default=None, choices=range(1, 6))
     p_add.add_argument("--tags", default="", help="Comma-separated tags")
     p_add.add_argument("--depends-on", default="", help="Comma-separated task IDs")
+    p_add.add_argument("--due", default=None, help="Due date (ISO-8601, e.g. 2026-02-25T12:00:00)")
 
     p_list = sub.add_parser("list", help="List tasks")
     p_list.add_argument("--status", choices=[PENDING, RUNNING, DONE, FAILED, BLOCKED])
@@ -51,6 +52,11 @@ def main():
 
     sub.add_parser("stats", help="Show task statistics")
 
+    p_export = sub.add_parser("export", help="Export tasks")
+    p_export.add_argument("--format", choices=["md", "json"], default="md", dest="fmt")
+
+    sub.add_parser("overdue", help="Show overdue tasks")
+
     args = parser.parse_args()
     tq = TaskQueue()
 
@@ -61,7 +67,7 @@ def main():
     elif args.command == "add":
         tags = [t.strip() for t in args.tags.split(",") if t.strip()] if args.tags else []
         deps = [d.strip() for d in args.depends_on.split(",") if d.strip()] if args.depends_on else []
-        task = tq.add(args.name, description=args.desc, priority=args.priority, tags=tags, depends_on=deps)
+        task = tq.add(args.name, description=args.desc, priority=args.priority, tags=tags, depends_on=deps, due_at=args.due)
         print(f"Added task {task.id}: {task.name} [{task.status}]")
 
     elif args.command == "list":
@@ -136,6 +142,17 @@ def main():
         print(f"  Pending: {s[PENDING]}  Running: {s[RUNNING]}  "
               f"Done: {s[DONE]}  Failed: {s[FAILED]}  Blocked: {s[BLOCKED]}")
 
+    elif args.command == "export":
+        print(tq.export(fmt=args.fmt))
+
+    elif args.command == "overdue":
+        tasks = tq.overdue()
+        if tasks:
+            print(f"⚠️  {len(tasks)} overdue task(s):")
+            _print_tasks(tasks)
+        else:
+            print("No overdue tasks.")
+
     else:
         parser.print_help()
 
@@ -171,6 +188,8 @@ def _print_task_detail(task):
         print(f"  Tags: {', '.join(task.tags)}")
     if task.depends_on:
         print(f"  Depends on: {', '.join(task.depends_on)}")
+    if task.due_at:
+        print(f"  Due: {task.due_at[:19]}")
     if task.subtasks:
         print(f"  Subtasks: {', '.join(task.subtasks)}")
     print(f"  Created: {task.created_at[:19]}")
